@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام الاستمارات الهندسية</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Times New Roman', serif; background: #f0f4f8; direction: rtl; }
+
+  /* ===== MAIN PAGE ===== */
+  .main-page { padding: 30px; }
+  .main-header {
+    text-align: center;
+    background: linear-gradient(135deg, #1a3c5e, #2d6a9f);
+    color: white;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  }
+  .main-header h1 { font-size: 28px; margin-bottom: 8px; }
+  .main-header p { font-size: 16px; opacity: 0.9; }
+  .forms-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .form-card {
+    background: white;
+    border-radius: 10px;
+    padding: 25px 20px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-right: 5px solid #2d6a9f;
+    transition: all 0.3s;
+    text-align: right;
+  }
+  .form-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(45,106,159,0.25);
+    border-right-color: #1a3c5e;
+  }
+  .form-card .form-number {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 6px;
+  }
+  .form-card h3 { font-size: 16px; color: #1a3c5e; line-height: 1.5; }
+  .form-card .form-icon {
+    font-size: 30px;
+    margin-bottom: 12px;
+  }
+
+  /* ===== FORM PAGE ===== */
+  .form-page { display: none; }
+  .form-page.active { display: block; }
+  .form-actions {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: #1a3c5e;
+    padding: 10px 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .btn-back {
+    background: #fff;
+    color: #1a3c5e;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: bold;
+  }
+  .btn-print {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: bold;
+  }
+  .btn-clear {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .form-actions span { color: white; font-size: 15px; margin-right: 10px; }
+  .form-wrapper { padding-top: 55px; }
+
+  /* ===== FORM STYLES ===== */
+  .form-doc {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 20px auto;
+    background: white;
+    padding: 20mm 15mm;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.15);
+    font-size: 13px;
+    line-height: 1.8;
+    position: relative;
+  }
+  .form-doc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #333;
+    padding-bottom: 10px;
+  }
+  .org-name { font-weight: bold; font-size: 14px; text-align: right; }
+  .org-sub { font-size: 12px; color: #555; margin-top: 4px; }
+  .form-ref { text-align: left; font-size: 13px; }
+  .form-ref div { margin-bottom: 5px; }
+  .form-title {
+    text-align: center;
+    font-weight: bold;
+    font-size: 16px;
+    margin: 15px 0;
+    text-decoration: underline;
+  }
+  .form-subtitle {
+    text-align: center;
+    font-size: 14px;
+    margin-bottom: 15px;
+    font-weight: bold;
+  }
+
+  /* Input fields */
+  input[type="text"], textarea {
+    border: none;
+    border-bottom: 1px solid #333;
+    outline: none;
+    font-family: inherit;
+    font-size: 13px;
+    background: transparent;
+    width: 100%;
+    direction: rtl;
+    padding: 2px 4px;
+  }
+  input[type="text"]:focus, textarea:focus {
+    border-bottom: 2px solid #2d6a9f;
+    background: #f0f8ff;
+  }
+  textarea { resize: vertical; min-height: 40px; }
+  .inline-input {
+    display: inline-block;
+    border: none;
+    border-bottom: 1px solid #333;
+    outline: none;
+    font-family: inherit;
+    font-size: 13px;
+    background: transparent;
+    direction: rtl;
+    padding: 2px 4px;
+  }
+  .inline-input:focus { border-bottom: 2px solid #2d6a9f; background: #f0f8ff; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 12px;
+  }
+  table td, table th {
+    border: 1px solid #333;
+    padding: 6px 8px;
+    text-align: center;
+    vertical-align: middle;
+  }
+  table th {
+    background: #e8e8e8;
+    font-weight: bold;
+  }
+  table td input[type="text"] {
+    width: 100%;
+    text-align: center;
+  }
+
+  .field-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .field-label { white-space: nowrap; font-weight: bold; min-width: fit-content; }
+  .field-value { flex: 1; border-bottom: 1px solid #333; min-width: 100px; }
+  .field-value input { width: 100%; }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 10px 0;
+  }
+  .info-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin: 10px 0;
+  }
+
+  .sig-row {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 30px;
+    text-align: center;
+  }
+  .sig-box { text-align: center; min-width: 120px; }
+  .sig-box .sig-label { font-weight: bold; margin-bottom: 30px; font-size: 13px; }
+  .sig-box .sig-line { border-top: 1px solid #333; padding-top: 5px; font-size: 12px; }
+
+  .watermark {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0.08;
+    font-size: 60px;
+    font-weight: bold;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .ministry-watermark {
+    color: #c00;
+    font-size: 35px;
+  }
+
+  .section-title {
+    font-weight: bold;
+    margin: 15px 0 8px 0;
+    font-size: 14px;
+  }
+  .sub-section { margin: 8px 0; padding-right: 15px; }
+  .bordered-box {
+    border: 1px solid #333;
+    padding: 10px;
+    margin: 10px 0;
+    min-height: 60px;
+  }
+
+  /* ===== PRINT STYLES ===== */
+  @media print {
+    body { background: white; }
+    .form-actions { display: none !important; }
+    .form-wrapper { padding-top: 0; }
+    .main-page { display: none !important; }
+    .form-doc {
+      margin: 0;
+      box-shadow: none;
+      padding: 15mm 12mm;
+    }
+    input[type="text"], textarea, .inline-input {
+      border: none !important;
+      border-bottom: 1px solid #999 !important;
+      background: transparent !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== MAIN PAGE ===== -->
+<div class="main-page" id="mainPage">
+  <div class="main-header">
+    <h1>🗂️ نظام الاستمارات الهندسية</h1>
+    <p>وزارة الاعمار والاسكان | شبكة نقل الطاقة الكهربائية - كربلاء</p>
+  </div>
+  <div class="forms-grid">
+    <div class="form-card" onclick="showForm('form1')">
+      <div class="form-icon">📋</div>
+      <div class="form-number">استمارة خاصة</div>
+      <h3>استمارة تدقيق اعمال</h3>
+    </div>
+    <div class="form-card" onclick="showForm('form_n1')">
+      <div class="form-icon">📍</div>
+      <div class="form-number">نموذج (١)</div>
+      <h3>محضر تسليم وتسلم موقع العمل</h3>
+    </div>
+    <div class="form-card" onclick="showForm('form_n2')">
+      <div class="form-icon">📐</div>
+      <div class="form-number">نموذج (٢)</div>
+      <h3>محضر قبول تخطيط المنشأ</h3>
+    </div>
+    <div class="form-card" onclick="showForm('form_n3')">
+      <div class="form-icon">🚛</div>
+      <div class="form-number">نموذج (٣)</div>
+      <h3>المواد والمعدات ذات الادخال الكمركي الموقت</h3>
+    </div>
+    <div class="form-card" onclick="showForm('form_n7')">
+      <div class="form-icon">📊</div>
+      <div class="form-number">نموذج (٧)</div>
+      <h3>جدول الكميات والأسعار</h3>
+    </div>
+    <div class="form-card" onclick="showForm('form_n12')">
+      <div class="form-icon">✅</div>
+      <div class="form-number">نموذج (١٢)</div>
+      <h3>تقرير لجنة التسلم الأولي</h3>
+    </div>
+    <div class="form-card" onclick="showForm('form_n14')">
+      <div class="form-icon">🏁</div>
+      <div class="form-number">نموذج (١٤)</div>
+      <h3>تقرير لجنة التسلم النهائي</h3>
+    </div>
+    <div class="form-card" onclick="showForm('form_n16')">
+      <div class="form-icon">🔍</div>
+      <div class="form-number">نموذج (١٦)</div>
+      <h3>استمارة التدقيق الموقعي</h3>
+    </div>
+    <div class="form-card" onclick="showForm('form_n17')">
+      <div class="form-icon">🏗️</div>
+      <div class="form-number">نموذج (١٧)</div>
+      <h3>استمارة موافقة صب الخرسانة</h3>
+    </div>
+    <div class="form-card" onclick="showForm('form_n21')">
+      <div class="form-icon">📅</div>
+      <div class="form-number">نموذج (٢١)</div>
+      <h3>التقرير نصف الشهري</h3>
+    </div>
+    <div class="form-card" onclick="showForm('form_n22')">
+      <div class="form-icon">📆</div>
+      <div class="form-number">نموذج (٢٢)</div>
+      <h3>الجدول اليومي لموجودات المشروع</h3>
+    </div>
+  </div>
+</div>
+
+<!-- ===== FORM ACTIONS BAR ===== -->
+<div class="form-actions" id="formActions" style="display:none;">
+  <button class="btn-back" onclick="goBack()">→ رجوع</button>
+  <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
+  <button class="btn-clear" onclick="clearForm()">🗑️ مسح</button>
+  <span id="formActionsTitle"></span>
+</div>
+
+<!-- ===================================================
+     FORM 1: استمارة تدقيق اعمال
+     =================================================== -->
+<div class="form-page" id="form1">
+<div class="form-wrapper">
+<div class="form-doc">
+  <div class="watermark ministry-watermark">وزارة الكهرباء</div>
+  <div class="form-doc-header">
+    <div class="org-name">
+      الشركة العامة لنقل الطاقة الكهربائية الفرات الاوسط<br>
+      <span class="org-sub">شبكة نقل الطاقة الكهربائية لمحافظة كربلاء المقدسة</span>
+    </div>
+    <div class="form-ref">
+      <div>العدد: <input type="text" class="inline-input" style="width:120px"></div>
+      <div>التاريخ: <input type="text" class="inline-input" style="width:50px"> / <input type="text" class="inline-input" style="width:50px"> / <input type="text" class="inline-input" style="width:60px"></div>
+    </div>
+  </div>
+
+  <div class="field-row" style="margin-bottom:15px;">
+    <span class="field-label">مشروع</span>
+    <input type="text" class="inline-input" style="width:400px">
+  </div>
+
+  <div class="form-title">م / استمارة تدقيق اعمال</div>
+
+  <p style="margin-bottom:15px;">
+    ارجو التفضل بالموافقة على تدقيق اعمال
+    <input type="text" class="inline-input" style="width:300px">
+  </p>
+  <div class="bordered-box">
+    <textarea style="width:100%; border:none; outline:none; font-family:inherit; font-size:13px; min-height:60px; resize:vertical; direction:rtl;"></textarea>
+  </div>
+
+  <p style="margin: 15px 0; text-align:center; font-weight:bold;">مع التقدير ...</p>
+
+  <div style="margin: 20px 0; padding-right: 30px;">
+    <p style="font-weight:bold; margin-bottom:10px;">المتعهد / المقاول</p>
+    <div class="field-row">
+      <span class="field-label">الاسم:</span>
+      <input type="text" class="inline-input" style="width:250px">
+    </div>
+    <div class="field-row">
+      <span class="field-label">التاريخ:</span>
+      <input type="text" class="inline-input" style="width:50px"> /
+      <input type="text" class="inline-input" style="width:50px"> /
+      <input type="text" class="inline-input" style="width:60px">
+    </div>
+  </div>
+
+  <div class="form-subtitle" style="margin-top:20px;">الموافقة على اعمال المرحلة الحالية والانتقال للمرحلة اللاحقة</div>
+
+  <table>
+    <tr>
+      <th>الهندسة المدنية</th>
+      <th>الهندسة الكهربائية</th>
+      <th>الهندسة الميكانيكية</th>
+      <th>الخدمات الصحية</th>
+    </tr>
+    <tr>
+      <td style="height:70px;"><input type="text" style="width:100%"></td>
+      <td><input type="text" style="width:100%"></td>
+      <td><input type="text" style="width:100%"></td>
+      <td><input type="text" style="width:100%"></td>
+    </tr>
+    <tr>
+      <th>هندسة المساحة</th>
+      <th colspan="3">المهندس المقيم</th>
+    </tr>
+    <tr>
+      <td style="height:70px;"><input type="text" style="width:100%"></td>
+      <td colspan="3"><input type="text" style="width:100%"></td>
+    </tr>
+  </table>
+
+  <div style="margin-top:20px;">
+    <p style="font-weight:bold; margin-bottom:8px;">نسخة منه الى //</p>
+    <p>• المتعهد / المقاول</p>
+    <p>• الاضبارة المختصة</p>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ===================================================
+     FORM N1: محضر تسليم وتسلم موقع العمل
+     =================================================== -->
+<div class="form-page" id="form_n1">
+<div class="form-wrapper">
+<div class="form-doc">
+  <div class="form-doc-header">
+    <div class="org-name">
+      وزارة الاعمار والاسكان<br>
+      <span class="org-sub">دائرة المباني</span>
+    </div>
+    <div style="text-align:left; font-size:12px; color:#555;">
+      دليل المهندس المقيم<br>للمشاريع الانشائية
+    </div>
+  </div>
+
+  <div class="info-grid" style="margin-bottom:15px;">
+    <div class="field-row"><span class="field-label">الوزارة:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div></div>
+    <div class="field-row"><span class="field-label">الدائرة:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div></div>
+  </div>
+
+  <div class="form-subtitle">النمـــوذج (١)</div>
+  <p style="text-align:center; margin-bottom:5px;">دائرة المهندس المقيم لمشروع:-
+    <input type="text" class="inline-input" style="width:200px">
+  </p>
+
+  <div class="form-title">محضر تسليم وتسلم موقع العمل</div>
+
+  <div class="info-grid">
+    <div class="field-row"><span class="field-label">أسـم المقاولة:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div class="field-row"><span class="field-label">رقم المحضر:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div class="field-row"><span class="field-label">التاريـــخ:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div></div>
+  </div>
+
+  <div style="margin:15px 0;">
+    <div class="field-row">
+      <span>تم بتاريخ</span>
+      <input type="text" class="inline-input" style="width:100px">
+      <span>الكشف على موقع العمل وقد قام السيد (</span>
+      <input type="text" class="inline-input" style="width:150px">
+      <span>)</span>
+    </div>
+    <div class="field-row">
+      <span>ممثل صاحب العمل بتسلـيم الموقـع الى المقاول (</span>
+      <input type="text" class="inline-input" style="width:200px">
+      <span>)</span>
+    </div>
+    <p style="margin:8px 0;">وتم تثبيت ذلك بموجب مايلي:-</p>
+  </div>
+
+  <div style="margin:10px 0; line-height:2.2;">
+    <p><strong>١-</strong> تأييد تسلم خارطة الموقع التضمنت الرواقم المعتمدة لتحديد النقاط والأركان وأية معلومات أخرى متوافرة تساعد في تحديد الموقع المخصصة للموقع لتكون تتطابق مع المخططات التصميمية للمشروع وبعكسه يثبت ذلك في المحضر ويتخذ اللازم لتعديل المخطط في ضوء ذلك بالإضافة الى راقم التسوية <strong>(B.M).</strong></p>
+    <p><strong>٢-</strong> تأييد عدم وجود شواغل او تعارضات او محرمات ضمن حدود الموقع تعيق المباشرة بالعمل.</p>
+    <p><strong>٣-</strong> تأييد تسلم نسخة من تقرير تحريات التربة.</p>
+  </div>
+
+  <div class="sig-row" style="margin-top:40px;">
+    <div class="sig-box">
+      <div class="sig-label">توقيـــع المقاول<br>أو ممثـل المقـاول<br>بموجب كتاب التخويل المرقم</div>
+      <div style="border-top:1px solid #333; padding-top:5px; margin-top:30px;"></div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-label">توقيع<br>المهندس المقيم</div>
+      <div style="border-top:1px solid #333; padding-top:5px; margin-top:30px;"></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ===================================================
+     FORM N2: محضر قبول تخطيط المنشأ
+     =================================================== -->
+<div class="form-page" id="form_n2">
+<div class="form-wrapper">
+<div class="form-doc">
+  <div class="form-doc-header">
+    <div class="org-name">وزارة الاعمار والاسكان<br><span class="org-sub">دائرة المباني</span></div>
+    <div style="text-align:left; font-size:12px; color:#555;">دليل المهندس المقيم<br>للمشاريع الانشائية</div>
+  </div>
+
+  <div class="info-grid" style="margin-bottom:10px;">
+    <div class="field-row"><span class="field-label">الوزارة:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div></div>
+    <div class="field-row"><span class="field-label">الدائرة:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div></div>
+  </div>
+
+  <div class="form-subtitle">النمـــوذج (٢)</div>
+  <p style="text-align:center; margin-bottom:5px;">دائرة المهندس المقيم لمشروع:-
+    <input type="text" class="inline-input" style="width:200px">
+  </p>
+  <div class="form-title">محضر قبول تخطيط المنشأ</div>
+
+  <div class="info-grid">
+    <div class="field-row"><span class="field-label">اسـم المقاولة:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div class="field-row"><span class="field-label">رقم المحضر:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div class="field-row"><span class="field-label">التاريـخ:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div></div>
+  </div>
+
+  <div style="margin:15px 0; line-height:2.2;">
+    <div class="field-row">
+      <span>المنشأ:-</span>
+      <input type="text" class="inline-input" style="flex:1">
+    </div>
+    <div class="field-row">
+      <span>رقم المخططات المعتمدة:-</span>
+      <input type="text" class="inline-input" style="flex:1">
+    </div>
+    <div class="field-row">
+      <span>الاحداثيـات المعتمـدة:-</span>
+      <input type="text" class="inline-input" style="flex:1">
+    </div>
+  </div>
+
+  <div style="margin:15px 0; line-height:2.4;">
+    <div class="field-row">
+      <span>قام المقاول (</span>
+      <input type="text" class="inline-input" style="width:200px">
+      <span>) بتخطيط المنشـأ المبين آنفاً وقـام السـيد</span>
+    </div>
+    <div class="field-row">
+      <span>(</span>
+      <input type="text" class="inline-input" style="width:200px">
+      <span>) ممثلاً عن دائرة المهندس المقيم بتدقيق</span>
+    </div>
+    <p>التخطيط وتم قبوله بموجب المرافق طياً ولأجله تم التوقيع.</p>
+  </div>
+
+  <div style="margin:15px 0;">
+    <p style="font-weight:bold;">المرافـق:</p>
+    <div class="field-row">
+      <span>المخطط المرقم (</span>
+      <input type="text" class="inline-input" style="width:100px">
+      <span>) الخاص بتدقيق التخطيط ، مثبت عليه الملاحظات الموقعية.</span>
+    </div>
+  </div>
+
+  <div class="sig-row" style="margin-top:40px;">
+    <div class="sig-box">
+      <div class="sig-label">توقيـــع المقاول<br>أو ممثـل المقـاول<br>بموجب كتاب التخويل المرقم</div>
+      <div style="border-top:1px solid #333; padding-top:5px; margin-top:30px;"></div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-label">توقيـع<br>المهندس المقيم</div>
+      <div style="border-top:1px solid #333; padding-top:5px; margin-top:30px;"></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ===================================================
+     FORM N3: المواد والمعدات ذات الادخال الكمركي الموقت
+     =================================================== -->
+<div class="form-page" id="form_n3">
+<div class="form-wrapper">
+<div class="form-doc">
+  <div class="form-doc-header">
+    <div class="org-name">وزارة الاعمار والاسكان<br><span class="org-sub">دائرة المباني</span></div>
+    <div style="text-align:left; font-size:12px; color:#555;">دليل المهندس المقيم<br>للمشاريع الانشائية</div>
+  </div>
+
+  <div class="info-grid" style="margin-bottom:10px;">
+    <div class="field-row"><span class="field-label">الوزارة:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div></div>
+    <div class="field-row"><span class="field-label">الدائرة:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div></div>
+  </div>
+
+  <div class="form-subtitle">النموذج (٣)</div>
+  <div class="form-title">المواد والمعدات ذات الادخال الكمركي الموقت</div>
+
+  <div class="info-grid">
+    <div class="field-row"><span class="field-label">إسم المشـروع:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div class="field-row"><span class="field-label">إسـم المقاول:-</span><input type="text" class="inline-input" style="flex:1"></div>
+  </div>
+
+  <table style="margin-top:15px; font-size:11px;">
+    <tr>
+      <th rowspan="2">ت</th>
+      <th rowspan="2">نوع المادة / المعدة</th>
+      <th rowspan="2">الكمية</th>
+      <th rowspan="2">الوحدة</th>
+      <th rowspan="2">رقم البيان الكمركي</th>
+      <th rowspan="2">تاريخ الادخال الكمركي الموقت</th>
+      <th rowspan="2">رقم قرار لجنة الجمارك</th>
+      <th rowspan="2">مدة الادخال الكمركي الموقت</th>
+      <th colspan="2">تاريخ انتهاء مدة الادخال الكمركي</th>
+      <th rowspan="2">ملاحظات</th>
+    </tr>
+    <tr>
+      <th>المقررة</th>
+      <th>الفعلية</th>
+    </tr>
+    <tr><td>١</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٢</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٣</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٤</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٥</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٦</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٧</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٨</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٩</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>١٠</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>١١</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>١٢</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+  </table>
+
+  <div class="sig-row" style="margin-top:30px;">
+    <div class="sig-box">
+      <div class="sig-label">المهندس المقيم</div>
+      <div style="border-top:1px solid #333; padding-top:5px; margin-top:30px;"></div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-label">مدير المشروع</div>
+      <div style="border-top:1px solid #333; padding-top:5px; margin-top:30px;"></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ===================================================
+     FORM N7: جدول الكميات والأسعار
+     =================================================== -->
+<div class="form-page" id="form_n7">
+<div class="form-wrapper">
+<div class="form-doc">
+  <div class="form-doc-header">
+    <div class="org-name">وزارة الاعمار والاسكان<br><span class="org-sub">دائرة المباني</span></div>
+    <div style="text-align:left; font-size:12px; color:#555;">دليل المهندس المقيم<br>للمشاريع الانشائية</div>
+  </div>
+
+  <div class="info-grid" style="margin-bottom:10px;">
+    <div class="field-row"><span class="field-label">الوزارة:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div class="field-row"><span class="field-label">الدائرة:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div class="field-row"><span class="field-label">المشروع:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div class="field-row"><span class="field-label">المقاول:-</span><input type="text" class="inline-input" style="flex:1"></div>
+  </div>
+
+  <div class="form-subtitle">نموذج (٧)</div>
+  <div class="form-title">جدول الكميات والأسعار</div>
+
+  <table style="font-size:11px;">
+    <tr>
+      <th rowspan="2">ت</th>
+      <th rowspan="2">وصف الاعمال</th>
+      <th rowspan="2">الوحدة</th>
+      <th colspan="2">الكميات التعاقدية</th>
+      <th colspan="2">الكميات المنجزة حتى الآن</th>
+      <th colspan="2">الكميات المنجزة هذه الفترة</th>
+      <th rowspan="2">سعر الوحدة</th>
+      <th rowspan="2">مبلغ الفترة</th>
+      <th rowspan="2">المبلغ الكلي المنجز</th>
+      <th rowspan="2">ملاحظات</th>
+    </tr>
+    <tr>
+      <th>الكمية</th>
+      <th>المبلغ</th>
+      <th>الكمية</th>
+      <th>المبلغ</th>
+      <th>الكمية</th>
+      <th>المبلغ</th>
+    </tr>
+    <tr><td>١</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٢</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٣</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٤</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٥</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٦</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٧</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٨</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr style="font-weight:bold; background:#f0f0f0;"><td colspan="10" style="text-align:left;">المجموع</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td></td></tr>
+  </table>
+
+  <div class="sig-row" style="margin-top:30px;">
+    <div class="sig-box">
+      <div class="sig-label">المهندس المقيم</div>
+      <div style="border-top:1px solid #333; padding-top:5px; margin-top:30px;"></div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-label">مدير المشروع</div>
+      <div style="border-top:1px solid #333; padding-top:5px; margin-top:30px;"></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ===================================================
+     FORM N12: تقرير لجنة التسلم الأولي
+     =================================================== -->
+<div class="form-page" id="form_n12">
+<div class="form-wrapper">
+<div class="form-doc">
+  <div class="form-doc-header">
+    <div class="org-name">وزارة الاعمار والاسكان<br><span class="org-sub">دائرة المباني</span></div>
+    <div style="text-align:left; font-size:12px; color:#555;">دليل المهندس المقيم<br>للمشاريع الانشائية</div>
+  </div>
+
+  <div style="margin-bottom:10px;">
+    <div class="field-row"><span class="field-label">الوزارة:-</span><input type="text" class="inline-input" style="width:200px"></div>
+    <div class="field-row"><span class="field-label">الدائرة:-</span><input type="text" class="inline-input" style="width:200px"></div>
+    <div class="field-row"><span class="field-label">المشروع:-</span><input type="text" class="inline-input" style="width:200px"></div>
+  </div>
+
+  <div class="form-subtitle">النموذج (١٢)</div>
+  <div class="form-title">م/ تقرير لجنة التسلم الاولي</div>
+
+  <div style="line-height:2.2; margin-top:15px;">
+    <p><strong>١- شرح موجز عن المشروع</strong></p>
+    <div class="bordered-box" style="min-height:80px;">
+      <textarea style="width:100%; border:none; outline:none; font-family:inherit; font-size:13px; min-height:70px; resize:vertical; direction:rtl;"></textarea>
+    </div>
+
+    <p style="margin-top:15px;"><strong>٢- توصي اللجنة بما يلي:-</strong></p>
+    <div style="padding-right:15px; line-height:2.4;">
+      <div class="field-row">
+        <span>أ- يعتبر العمل منجزاً بتاريخ</span>
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:60px">
+      </div>
+      <p>ب- على المقاول انجاز النواقص المدرجة في كشف النواقص المرافق خلال فترة اقصاها (
+        <input type="text" class="inline-input" style="width:50px"> ) يوم.</p>
+      <p>ج- لا تؤثر النواقص المدرجة في مرافق الفقرة (٢ - ب) على امكانية الاستفادة من المقاولة للغرض الذي أنشئت من اجله.</p>
+      <p>د- تؤيد اللجنة تنفيذ الاعمال بموجب الشروط والمواصفات الفنية والمخططات المتعاقد عليها (ما عدا النواقص المشار اليها في الفقرة (ب) آنفاً).</p>
+      <p>هـ- تدرج الاعمال التي أنجزت ويتطلب تأجيل تسلمها لأسباب مبينة ازاءها وكما يلي:-</p>
+    </div>
+
+    <p style="font-weight:bold; margin-right:20px;">الاسباب</p>
+    <div style="padding-right:30px;">
+      <div class="field-row">- ١ <input type="text" class="inline-input" style="flex:1"></div>
+      <div class="field-row">- ٢ <input type="text" class="inline-input" style="flex:1"></div>
+      <div class="field-row">- ٣ <input type="text" class="inline-input" style="flex:1"></div>
+    </div>
+
+    <div style="margin-top:15px; line-height:2.4;">
+      <div class="field-row">
+        <span>و- تبدأ مدة الصيانة من تاريخ</span>
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:60px">
+        <span>وتنتهي في</span>
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:60px">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="form-doc" style="margin-top:10px;">
+  <div class="form-doc-header">
+    <div class="org-name">وزارة الاعمار والاسكان<br><span class="org-sub">دائرة المباني</span></div>
+    <div style="text-align:left; font-size:12px; color:#555;">دليل المهندس المقيم<br>للمشاريع الانشائية</div>
+  </div>
+
+  <div style="line-height:2.4; margin-top:10px;">
+    <p>وعدا الاعمال التالية التي تبدأ مدة صيانتها من تاريخ إكمال النواقص وبما لا يتناقض مع العقد وللأسباب المبينة إزاءها:-</p>
+    <div style="padding-right:20px;">
+      <div style="margin:8px 0;">
+        <span>اولاً:- تبـدأ من مدة صـيانتها بتاريـخ</span>
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:60px">
+        <span>ولمدة (</span>
+        <input type="text" class="inline-input" style="width:50px">
+        <span>)</span>
+        <br>
+        <span>وتنتهي بتاريخ</span>
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:60px">
+        <span>وذلك بسبب:-</span>
+      </div>
+      <div class="field-row">ثانياً:- <input type="text" class="inline-input" style="flex:1"></div>
+      <div class="field-row">ثالثاً:- <input type="text" class="inline-input" style="flex:1"></div>
+    </div>
+
+    <div style="margin-top:15px;">
+      <div class="field-row">
+        <span>ز- أية ملاحظات او تحفظات أخرى.</span>
+      </div>
+      <div class="bordered-box" style="min-height:50px;">
+        <textarea style="width:100%; border:none; outline:none; font-family:inherit; font-size:13px; min-height:40px; resize:vertical; direction:rtl;"></textarea>
+      </div>
+    </div>
+
+    <div style="margin-top:15px;">
+      <div class="field-row">
+        <span>٣- سلم المشروع الى الجهة المنتفعة (</span>
+        <input type="text" class="inline-input" style="width:200px">
+        <span>)</span>
+      </div>
+      <p>وتم تسليم كافة مرافق المشروع بما يحتويه من مواد ومعدات وأثاث بموجب العقد مع الأخذ بنظر الاعتبار انجاز النواقص المشار اليها في (٢ - ب) آنفاً.</p>
+    </div>
+
+    <div style="margin-top:15px;">
+      <p style="font-weight:bold;">أسماء أعضاء لجنة التسلم الاولي وتواقيعهم:</p>
+      <div class="bordered-box" style="min-height:80px;">
+        <textarea style="width:100%; border:none; outline:none; font-family:inherit; font-size:13px; min-height:70px; resize:vertical; direction:rtl;"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px; line-height:2; font-size:13px;">
+    <p>أؤيد ما ورد انفاً واتعهد بانجاز النواقص المثبتة بكشف النواقص لكافة الاعمال وفي ضوء ما هو مبين آنفاً.</p>
+  </div>
+
+  <div class="sig-row" style="margin-top:30px;">
+    <div class="sig-box">
+      <div class="sig-label">اسم وتوقيع ممثل المقاول</div>
+      <div class="field-row" style="justify-content:center; margin-top:10px;">
+        <span>التاريخ:</span>
+        <input type="text" class="inline-input" style="width:120px">
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ===================================================
+     FORM N14: تقرير لجنة التسلم النهائي
+     =================================================== -->
+<div class="form-page" id="form_n14">
+<div class="form-wrapper">
+<div class="form-doc">
+  <div class="form-doc-header">
+    <div class="org-name">وزارة الاعمار والاسكان<br><span class="org-sub">دائرة المباني</span></div>
+    <div style="text-align:left; font-size:12px; color:#555;">دليل المهندس المقيم<br>للمشاريع الانشائية</div>
+  </div>
+
+  <div style="margin-bottom:10px;">
+    <div class="field-row"><span class="field-label">الوزارة:-</span><input type="text" class="inline-input" style="width:200px"></div>
+    <div class="field-row"><span class="field-label">الدائرة:-</span><input type="text" class="inline-input" style="width:200px"></div>
+    <div class="field-row"><span class="field-label">المشروع:-</span><input type="text" class="inline-input" style="width:200px"></div>
+  </div>
+
+  <div class="form-subtitle">النموذج (١٤)</div>
+  <div class="form-title">تقرير لجنة التسلم النهائي</div>
+
+  <div style="line-height:2.2; margin-top:15px;">
+    <p><strong>١- شرح موجز عن طبيعة المقاولة:-</strong></p>
+    <div class="bordered-box" style="min-height:80px;">
+      <textarea style="width:100%; border:none; outline:none; font-family:inherit; font-size:13px; min-height:70px; resize:vertical; direction:rtl;"></textarea>
+    </div>
+
+    <p style="margin-top:15px;"><strong>٢- أعمال الصيانة وتوصيات لجنة التسلم النهائي:-</strong></p>
+    <div style="padding-right:10px; line-height:2.4; font-size:13px;">
+      <p>أ- تم إنجاز النواقص التي لا تؤثر على الاشغال المدرجة في كشف النواقص في محضر التسلم الاولي كما تم إنجاز كافة النواقص الاخرى التي ثبتت على المقاول في اثناء فترة الصيانة فقد وجدت بعض النواقص المثبتة في كشف النواقص المرافق طبقاً لكل مجموعة بحسب إختصاصها والتي ينبغي على المقاول إنجازها في موعد اقصاه
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:60px">
+        بموجب العقد وعلى حسابه الخاص.
+      </p>
+      <div style="margin-top:10px; line-height:2.4;">
+        <div class="field-row">
+          <span>ب- على ضوء تقرير لجنة التسلم الاولي بدأت فترة الصيانة بتاريخ</span>
+          <input type="text" class="inline-input" style="width:50px"> /
+          <input type="text" class="inline-input" style="width:50px"> /
+          <input type="text" class="inline-input" style="width:60px">
+          <span>ولمدة(</span>
+          <input type="text" class="inline-input" style="width:60px">
+          <span>)</span>
+        </div>
+        <div class="field-row">
+          <span>وانتهت بتاريخ</span>
+          <input type="text" class="inline-input" style="width:50px"> /
+          <input type="text" class="inline-input" style="width:50px"> /
+          <input type="text" class="inline-input" style="width:60px">
+        </div>
+        <p>عدا الاعمال التالية التي تبدأ مدة صيانتها من تاريخ إكمال النواقص المثبتة بموجب محضر التسلم الاولي والكتب والمراسلات اللاحقة وبما لا يتناقض مع العقد والملاحظات المثبتة ازاءها:-</p>
+      </div>
+    </div>
+
+    <div style="padding-right:20px;">
+      <div style="margin:8px 0;">
+        <span>اولاً: (</span>
+        <input type="text" class="inline-input" style="width:100px">
+        <span>) بدأت مدة صـيانتها بتاريـخ</span>
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:60px">
+        <br>
+        <span>ولمـدة (</span>
+        <input type="text" class="inline-input" style="width:60px">
+        <span>) وانتهت بتاريخ</span>
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:50px"> /
+        <input type="text" class="inline-input" style="width:60px">
+        <span>وذلك بسبب</span>
+        <input type="text" class="inline-input" style="width:100px">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="form-doc" style="margin-top:10px;">
+  <div class="form-doc-header">
+    <div class="org-name">وزارة الاعمار والاسكان<br><span class="org-sub">دائرة المباني</span></div>
+    <div style="text-align:left; font-size:12px; color:#555;">دليل المهندس المقيم<br>للمشاريع الانشائية</div>
+  </div>
+
+  <div style="line-height:2.4; margin-top:15px;">
+    <div class="field-row">ثانياً: <input type="text" class="inline-input" style="flex:1"></div>
+
+    <div style="margin-top:10px;">
+      <p>ج- خلال مدة الصيانة وفي الاوقات المناسبة تم تسلم كافة الاعمال التي انجزت وتم تأجيل تسلمها في اثناء عملية التسلم الاولي لأسباب وظروف معينة وكما يلي:-</p>
+      <div style="padding-right:20px;">
+        <div class="field-row">اولاً:- <input type="text" class="inline-input" style="flex:1"></div>
+        <div class="field-row">ثانياً:- <input type="text" class="inline-input" style="flex:1"></div>
+        <div class="field-row">ثالثاً:- <input type="text" class="inline-input" style="flex:1"></div>
+        <div class="field-row">رابعاً:- <input type="text" class="inline-input" style="flex:1"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;">
+      <div class="field-row">د- أية ملاحظات أخرى:-<input type="text" class="inline-input" style="flex:1"></div>
+    </div>
+
+    <div style="margin-top:10px; font-size:12px;">
+      <p>هـ- لا يتم إصدار شهادة الصيانة والتسلم النهائي إلا بعد إنجاز النواقص المشار اليها آنفاً حيث ينبغي إعادة التدقيق من قبل أعضاء اللجنة كل بحسب اختصاصه لغرض رفع التوصية النهائية.</p>
+    </div>
+
+    <div style="margin-top:15px;">
+      <p style="font-weight:bold;">أسماء أعضاء لجنة التسلم النهائي وتواقيعهم</p>
+      <div class="bordered-box" style="min-height:80px;">
+        <textarea style="width:100%; border:none; outline:none; font-family:inherit; font-size:13px; min-height:70px; resize:vertical; direction:rtl;"></textarea>
+      </div>
+    </div>
+
+    <div style="margin-top:15px; font-size:13px;">
+      <p>أؤيد ما جاء آنفاً وأتعهد بإنجاز النواقص المثبتة بكشف الاعمال لكافة الاعمال وفي ضوء ما هو مبين آنفاً وبخلافه يحق لصاحب العمل تنفيذها على حسابي ولايحق لي المطالبة بأي تعويضات من جراء ذلك.</p>
+    </div>
+  </div>
+
+  <div class="sig-row" style="margin-top:30px;">
+    <div class="sig-box">
+      <div class="sig-label">اسم وتوقيع ممثل المقاول</div>
+      <div class="field-row" style="justify-content:center; margin-top:10px;">
+        <span>التاريخ:</span>
+        <input type="text" class="inline-input" style="width:120px">
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ===================================================
+     FORM N16: استمارة التدقيق الموقعي
+     =================================================== -->
+<div class="form-page" id="form_n16">
+<div class="form-wrapper">
+<div class="form-doc">
+  <div class="form-doc-header">
+    <div class="org-name">وزارة الاعمار والاسكان<br><span class="org-sub">دائرة المباني</span></div>
+    <div style="text-align:left; font-size:12px; color:#555;">دليل المهندس المقيم<br>للمشاريع الانشائية</div>
+  </div>
+
+  <div class="info-grid" style="margin-bottom:10px;">
+    <div class="field-row"><span class="field-label">الوزارة:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div></div>
+    <div class="field-row"><span class="field-label">الدائرة:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div></div>
+  </div>
+
+  <div class="form-subtitle">نموذج (١٦)</div>
+  <div class="form-title">استمارة التدقيق الموقعي</div>
+
+  <div class="info-grid">
+    <div class="field-row"><span class="field-label">اسم المشروع:</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div class="field-row"><span class="field-label">العدد/</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div class="field-row"><span class="field-label">اسم المقاول:</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div class="field-row"><span class="field-label">التاريخ/</span><input type="text" class="inline-input" style="flex:1"></div>
+  </div>
+
+  <p style="font-weight:bold; margin:15px 0 8px 0;">اولاً:- تملأ من قبل المقاول.</p>
+  <table style="font-size:11px;">
+    <tr>
+      <th rowspan="2">ت</th>
+      <th rowspan="2">الفقرة المراد تدقيقها</th>
+      <th rowspan="2">البناية والموقع</th>
+      <th colspan="5">ملاحظات مهندسي الاختصاص</th>
+    </tr>
+    <tr>
+      <th>معماري</th>
+      <th>مدني</th>
+      <th>ميكانيك</th>
+      <th>صحي</th>
+      <th>كهرباء</th>
+    </tr>
+    <tr><td>١</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٢</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٣</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٤</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٥</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+  </table>
+
+  <div class="sig-row" style="margin-top:20px;">
+    <div class="sig-box"><div class="sig-label">المهندس المختص</div><div style="border-top:1px solid #333; margin-top:25px;"></div></div>
+    <div class="sig-box"><div class="sig-label">مدير الموقع</div><div style="border-top:1px solid #333; margin-top:25px;"></div></div>
+    <div class="sig-box"><div class="sig-label">مدير المشروع</div><div style="border-top:1px solid #333; margin-top:25px;"></div></div>
+  </div>
+
+  <p style="font-weight:bold; margin:20px 0 8px 0;">ثانياً:- تملأ من قبل د.م.م للمشروع.</p>
+  <table style="font-size:11px;">
+    <tr>
+      <th rowspan="2">ت</th>
+      <th rowspan="2">الفقرة المراد تدقيقها</th>
+      <th rowspan="2">البناية والموقع</th>
+      <th colspan="5">ملاحظات مهندسي الاختصاص</th>
+    </tr>
+    <tr>
+      <th>معماري</th>
+      <th>مدني</th>
+      <th>ميكانيك</th>
+      <th>صحي</th>
+      <th>كهرباء</th>
+    </tr>
+    <tr><td>١</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٢</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٣</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٤</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>٥</td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+  </table>
+
+  <div class="sig-row" style="margin-top:20px;">
+    <div class="sig-box"><div class="sig-label">المهندس المختص</div><div style="border-top:1px solid #333; margin-top:25px;"></div></div>
+    <div class="sig-box"><div class="sig-label">المهندس المقيم</div><div style="border-top:1px solid #333; margin-top:25px;"></div></div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ===================================================
+     FORM N17: استمارة موافقة صب الخرسانة
+     =================================================== -->
+<div class="form-page" id="form_n17">
+<div class="form-wrapper">
+<div class="form-doc">
+  <div class="form-doc-header">
+    <div class="org-name">وزارة الاعمار والاسكان<br><span class="org-sub">دائرة المباني</span></div>
+    <div style="text-align:left; font-size:12px; color:#555;">دليل المهندس المقيم<br>للمشاريع الانشائية</div>
+  </div>
+
+  <div style="margin-bottom:10px;">
+    <div class="field-row"><span class="field-label">الوزارة:-</span><input type="text" class="inline-input" style="width:200px"></div>
+    <div class="field-row"><span class="field-label">الدائرة:-</span><input type="text" class="inline-input" style="width:200px"></div>
+    <div class="field-row"><span class="field-label">المشروع:-</span><input type="text" class="inline-input" style="width:200px"></div>
+  </div>
+
+  <div class="form-subtitle">نموذج (١٧)</div>
+  <div class="form-title">استمارة موافقة صب الخرسانة</div>
+
+  <div class="info-grid" style="margin-bottom:10px;">
+    <div class="field-row"><span class="field-label">العدد/</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div></div>
+    <div class="field-row"><span class="field-label">التاريخ/</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div></div>
+  </div>
+
+  <p style="font-weight:bold; margin-bottom:8px; text-align:left;">الجزء (أ) يملأ قبل موعد الصب.</p>
+
+  <table style="font-size:11px;">
+    <tr>
+      <th>اسم المشروع</th>
+      <td colspan="7"><input type="text" style="width:100%"></td>
+    </tr>
+    <tr>
+      <th>اسم المقاول</th>
+      <td colspan="4"><input type="text" style="width:100%"></td>
+      <th colspan="3">صاحب العمل</th>
+    </tr>
+    <tr>
+      <th rowspan="5">قوة الانضغاط المطلوبة بحسب المخططات</th>
+      <th rowspan="5">الخلطة ومواصفات (أوزان) مواد الخلطة</th>
+      <th>سمنت</th>
+      <th rowspan="5">طريقة الصب</th>
+      <th rowspan="5">تاريخ الصب المتوقع</th>
+      <th rowspan="5">كمية الصب</th>
+    </tr>
+    <tr><th>رمل</th></tr>
+    <tr><th>حصى</th></tr>
+    <tr><th>ماء</th></tr>
+    <tr><th>مواد مضافة</th></tr>
+    <tr>
+      <td><input type="text" style="width:100%"></td>
+      <td></td>
+      <td><input type="text" style="width:100%"></td>
+      <td><input type="text" style="width:100%"></td>
+      <td><input type="text" style="width:100%"></td>
+      <td><input type="text" style="width:100%"></td>
+    </tr>
+  </table>
+
+  <p style="font-weight:bold; margin: 12px 0 5px 0;">العمل المراد صبه - الموقع بحسب المخططات:</p>
+  <table style="font-size:11px;">
+    <tr>
+      <th colspan="2">الاعمال المنفذة المطلوب تدقيقها</th>
+      <th colspan="2">ملاحظات د.م.م</th>
+    </tr>
+    <tr>
+      <td>قالب</td>
+      <td><input type="text" style="width:100%"></td>
+      <td rowspan="8" colspan="2"><textarea style="width:100%; min-height:120px; border:none; outline:none; font-family:inherit; font-size:12px; resize:vertical; direction:rtl;"></textarea></td>
+    </tr>
+    <tr><td>حديد تسليح</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>الابعاد</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>الشاقولية</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>الاستقامة</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>التنظيف</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>الاسناد والتدعيم</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td>اخرى</td><td><input type="text" style="width:100%"></td></tr>
+  </table>
+
+  <table style="font-size:11px; margin-top:8px;">
+    <tr>
+      <th rowspan="2">ملاحظات مهندسي الخدمات</th>
+      <th>كهرباء</th>
+      <td colspan="2"><input type="text" style="width:100%"></td>
+      <th rowspan="2">مهندسو الشركة المنفذة / يذكر الاسم والتوقيع</th>
+      <td rowspan="2"><input type="text" style="width:100%"></td>
+      <th rowspan="2">مهندسو د.م.م / يذكر الاسم والتوقيع</th>
+      <td rowspan="2"><input type="text" style="width:100%"></td>
+    </tr>
+    <tr>
+      <th>ميكانيك</th>
+      <td colspan="2"><input type="text" style="width:100%"></td>
+    </tr>
+    <tr>
+      <th colspan="3">المهندس المنفذ</th>
+      <td><input type="text" style="width:100%"></td>
+      <th colspan="2">مدير المشروع</th>
+      <td colspan="2"><input type="text" style="width:100%"></td>
+    </tr>
+    <tr>
+      <th colspan="8">المهندس المشرف / المهندس المقيم</th>
+    </tr>
+    <tr>
+      <td colspan="8"><input type="text" style="width:100%"></td>
+    </tr>
+  </table>
+
+  <div style="margin-top:20px;">
+    <p style="font-weight:bold; text-align:left;">الجزء (ب) يملأ بعد الصب من قبل د.م.م</p>
+    <table style="font-size:12px; margin-top:8px;">
+      <tr>
+        <th></th>
+        <th>التاريخ</th>
+        <th>الملاحظات</th>
+      </tr>
+      <tr>
+        <td>ازالة القالب</td>
+        <td><input type="text" style="width:100%"></td>
+        <td><input type="text" style="width:100%"></td>
+      </tr>
+      <tr>
+        <td>طريقة الانضاج للخرسانة</td>
+        <td><input type="text" style="width:100%"></td>
+        <td><input type="text" style="width:100%"></td>
+      </tr>
+      <tr>
+        <td>اخرى</td>
+        <td><input type="text" style="width:100%"></td>
+        <td><input type="text" style="width:100%"></td>
+      </tr>
+      <tr>
+        <td colspan="2" style="font-weight:bold;">توقيع وملاحظات المهندس المشرف</td>
+        <td>التاريخ/ <input type="text" style="width:80%"></td>
+      </tr>
+      <tr>
+        <td colspan="2" style="font-weight:bold;">توقيع المهندس المقيم</td>
+        <td>التاريخ/ <input type="text" style="width:80%"></td>
+      </tr>
+    </table>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ===================================================
+     FORM N21: التقرير نصف الشهري
+     =================================================== -->
+<div class="form-page" id="form_n21">
+<div class="form-wrapper">
+<div class="form-doc">
+  <div class="form-doc-header">
+    <div class="org-name">وزارة الاعمار والاسكان<br><span class="org-sub">دائرة المباني</span></div>
+    <div style="text-align:left; font-size:12px; color:#555;">دليل المهندس المقيم<br>للمشاريع الانشائية</div>
+  </div>
+
+  <div class="info-grid" style="margin-bottom:10px;">
+    <div class="field-row"><span class="field-label">الوزارة:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div></div>
+    <div class="field-row"><span class="field-label">الدائرة:-</span><input type="text" class="inline-input" style="flex:1"></div>
+    <div></div>
+  </div>
+
+  <div class="form-subtitle">النموذج (٢١)</div>
+  <div class="form-title">التقرير نصف الشهري</div>
+  <div style="text-align:center; margin-bottom:15px;">
+    للفترة من
+    <input type="text" class="inline-input" style="width:50px"> /
+    <input type="text" class="inline-input" style="width:50px"> /
+    <input type="text" class="inline-input" style="width:60px">
+    الى
+    <input type="text" class="inline-input" style="width:50px"> /
+    <input type="text" class="inline-input" style="width:50px"> /
+    <input type="text" class="inline-input" style="width:60px">
+  </div>
+
+  <table style="font-size:12px;">
+    <tr><th style="width:50%; text-align:right; padding-right:10px;">البيان</th><th style="width:50%;">القيمة</th></tr>
+    <tr><td style="text-align:right; padding-right:10px;">المشروع</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">المهندس المقيم</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">الشركة المنفذة</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">الاستشاري</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">الجهة المستفيدة</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">مبلغ الاحالة بموجب العقد</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">مبلغ الاحتياط</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">مدة المشروع</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">تاريخ المباشرة التعاقدي</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">تاريخ المباشرة الفعلي</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">تاريخ الانجاز التعاقدي</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">مجموع المدد الاضافية الممنوحة حتى تاريخ إعداد النموذج</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">تاريخ الانجاز التعاقدي بعد اضافة المدد الاضافية</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">محصلة مبالغ التغيير (بالزيادة والنقصان)</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">المتبقي من مبلغ الاحتياط حتى تاريخ إعداد النموذج</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">قيمة العمل المنجز</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">السلف المستلمة</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">نسبة الانجاز المخطط</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">نسبة الانجاز الفعلي</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">نسبة الانحراف</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">نسبة الانجاز المالي</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">نسبة المدة المنقضية</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">مرحلة العمل</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">أسباب الانحراف والمعوقات</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">المقترحات لمعالجة الانحراف</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">كشوف التسعير قيد الترويج</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">اوامر التغيير قيد الترويج</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">المدد الاضافية قيد الترويج</td><td><input type="text" style="width:100%"></td></tr>
+    <tr><td style="text-align:right; padding-right:10px;">السلف قيد الترويج</td><td><input type="text" style="width:100%"></td></tr>
+  </table>
+
+  <div class="sig-row" style="margin-top:30px;">
+    <div class="sig-box"><div class="sig-label">مدير المشروع</div><div style="border-top:1px solid #333; margin-top:25px;"></div></div>
+    <div class="sig-box"><div class="sig-label">المهندس المقيم</div><div style="border-top:1px solid #333; margin-top:25px;"></div></div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ===================================================
+     FORM N22: الجدول اليومي لموجودات المشروع
+     =================================================== -->
+<div class="form-page" id="form_n22">
+<div class="form-wrapper">
+<div class="form-doc">
+  <div class="form-doc-header">
+    <div class="org-name">وزارة الاعمار والاسكان<br><span class="org-sub">دائرة المباني</span></div>
+    <div style="text-align:left; font-size:12px; color:#555;">دليل المهندس المقيم<br>للمشاريع الانشائية</div>
+  </div>
+
+  <div class="form-subtitle">النموذج (٢٢)</div>
+
+  <div style="margin-bottom:15px;">
+    <div class="field-row"><span class="field-label">اسم الوزارة</span><input type="text" class="inline-input" style="width:250px"></div>
+    <div class="field-row"><span class="field-label">اسم المشروع</span><input type="text" class="inline-input" style="width:250px"></div>
+    <div class="field-row"><span class="field-label">تاريخ البدء</span><input type="text" class="inline-input" style="width:150px"></div>
+    <div class="field-row"><span class="field-label">تاريخ الانتهاء</span><input type="text" class="inline-input" style="width:150px"></div>
+  </div>
+
+  <p style="text-align:center;">الى / المهندس المقيم</p>
+  <div class="form-title">الجدول اليومي لموجودات المشروع</div>
+
+  <table style="font-size:11px;">
+    <tr>
+      <th colspan="2">الإدارة</th>
+      <th colspan="2">العمال</th>
+      <th colspan="2">المعدات</th>
+      <th colspan="2">المكائن</th>
+      <th colspan="2">المواد المخزنة</th>
+    </tr>
+    <tr>
+      <th>الوصف</th><th>العدد</th>
+      <th>الوصف</th><th>العدد</th>
+      <th>الوصف</th><th>العدد</th>
+      <th>الوصف</th><th>العدد</th>
+      <th>الوصف</th><th>الكمية</th>
+    </tr>
+    <tr>
+      <td>مدير المشروع</td><td><input type="text" style="width:100%"></td>
+      <td>بنائين</td><td><input type="text" style="width:100%"></td>
+      <td>مولد كهرباء حجم ه.١ ط</td><td><input type="text" style="width:100%"></td>
+      <td>كرين ثابت</td><td><input type="text" style="width:100%"></td>
+      <td>رمل مغسول</td><td><input type="text" style="width:100%"></td>
+    </tr>
+    <tr>
+      <td>مهندسي مواقع</td><td><input type="text" style="width:100%"></td>
+      <td>عمال مساعدين</td><td><input type="text" style="width:100%"></td>
+      <td>مكيفات</td><td><input type="text" style="width:100%"></td>
+      <td>كرين متحرك حجم ١٠</td><td><input type="text" style="width:100%"></td>
+      <td>رمل عادي</td><td><input type="text" style="width:100%"></td>
+    </tr>
+    <tr>
+      <td>مراقبين</td><td><input type="text" style="width:100%"></td>
+      <td>نجارين</td><td><input type="text" style="width:100%"></td>
+      <td>تلاجات</td><td><input type="text" style="width:100%"></td>
+      <td>شوفل</td><td><input type="text" style="width:100%"></td>
+      <td>حصى ناعم</td><td><input type="text" style="width:100%"></td>
+    </tr>
+    <tr>
+      <td>اداري</td><td><input type="text" style="width:100%"></td>
+      <td>عمال مساعدين</td><td><input type="text" style="width:100%"></td>
+      <td>حاسبات منضدية ومحمولة</td><td><input type="text" style="width:100%"></td>
+      <td>شاحنة ناقلة نوع مرسيدس</td><td><input type="text" style="width:100%"></td>
+      <td>حديد تسليح</td><td><input type="text" style="width:100%"></td>
+    </tr>
+    <tr>
+      <td></td><td></td>
+      <td>حدادين (تسليح)</td><td><input type="text" style="width:100%"></td>
+      <td></td><td></td>
+      <td>مركبة باص نوع نيسان</td><td><input type="text" style="width:100%"></td>
+      <td>سيراميك مطبخ ٢٠×٢٠×٢سم</td><td><input type="text" style="width:100%"></td>
+    </tr>
+    <tr>
+      <td></td><td></td>
+      <td>كهربائيين</td><td><input type="text" style="width:100%"></td>
+      <td></td><td></td>
+      <td>بيك اب نوع تويوتا</td><td><input type="text" style="width:100%"></td>
+      <td>ابواب خشب</td><td><input type="text" style="width:100%"></td>
+    </tr>
+    <tr>
+      <td></td><td></td>
+      <td>عمال مساعدين</td><td><input type="text" style="width:100%"></td>
+      <td></td><td></td>
+      <td></td><td></td>
+      <td>شبابيك المنيوم</td><td><input type="text" style="width:100%"></td>
+    </tr>
+  </table>
+
+  <div style="margin-top:15px; font-style:italic; font-size:12px; color:#555;">
+    <p>هذا الجدول يوضح كافة الموجودات في مواقع العمل من موظفين، عمالة ماهرة وغير ماهرة ومعدات وموادٍ مخزنة. على مدير المشروع (ممثل المقاول) ملء هذا الجدول يومياً وتوقيعه عند نهاية الدوام وتقديمه الى دائرة المهندس المقيم ويعتبر وثيقة رسمية يمكن الاشارة اليه مستقبلاً.</p>
+  </div>
+
+  <div class="sig-row" style="margin-top:20px;">
+    <div class="sig-box"><div class="sig-label">توقيع مدير المشروع</div><div style="border-top:1px solid #333; margin-top:25px;"></div></div>
+  </div>
+</div>
+</div>
+</div>
+
+<script>
+  const formTitles = {
+    'form1': 'استمارة تدقيق اعمال',
+    'form_n1': 'نموذج (١) - محضر تسليم وتسلم موقع العمل',
+    'form_n2': 'نموذج (٢) - محضر قبول تخطيط المنشأ',
+    'form_n3': 'نموذج (٣) - المواد والمعدات ذات الادخال الكمركي الموقت',
+    'form_n7': 'نموذج (٧) - جدول الكميات والأسعار',
+    'form_n12': 'نموذج (١٢) - تقرير لجنة التسلم الأولي',
+    'form_n14': 'نموذج (١٤) - تقرير لجنة التسلم النهائي',
+    'form_n16': 'نموذج (١٦) - استمارة التدقيق الموقعي',
+    'form_n17': 'نموذج (١٧) - استمارة موافقة صب الخرسانة',
+    'form_n21': 'نموذج (٢١) - التقرير نصف الشهري',
+    'form_n22': 'نموذج (٢٢) - الجدول اليومي لموجودات المشروع',
+  };
+
+  let currentForm = null;
+
+  function showForm(formId) {
+    document.getElementById('mainPage').style.display = 'none';
+    document.getElementById('formActions').style.display = 'flex';
+    document.getElementById('formActionsTitle').textContent = formTitles[formId] || '';
+    if (currentForm) {
+      document.getElementById(currentForm).classList.remove('active');
+    }
+    document.getElementById(formId).classList.add('active');
+    currentForm = formId;
+    window.scrollTo(0, 0);
+  }
+
+  function goBack() {
+    if (currentForm) {
+      document.getElementById(currentForm).classList.remove('active');
+      currentForm = null;
+    }
+    document.getElementById('mainPage').style.display = 'block';
+    document.getElementById('formActions').style.display = 'none';
+    window.scrollTo(0, 0);
+  }
+
+  function clearForm() {
+    if (!currentForm) return;
+    if (confirm('هل تريد مسح جميع البيانات في هذه الاستمارة؟')) {
+      const formEl = document.getElementById(currentForm);
+      formEl.querySelectorAll('input[type="text"]').forEach(i => i.value = '');
+      formEl.querySelectorAll('textarea').forEach(t => t.value = '');
+    }
+  }
+</script>
+</body>
+</html>
