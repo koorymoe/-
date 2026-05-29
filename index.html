@@ -4,6 +4,41 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>نظام الاستمارات الهندسية</title>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBXlYDdhth8j72q9ADNggaiMNZiXSteTPA",
+    authDomain: "forms-bd550.firebaseapp.com",
+    projectId: "forms-bd550",
+    storageBucket: "forms-bd550.firebasestorage.app",
+    messagingSenderId: "793800684991",
+    appId: "1:793800684991:web:ad19a960741cac28f39d0a",
+    measurementId: "G-PT6QP8SZ40"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window._saveFormToFirebase = async function(formId, formTitle) {
+    try {
+      const formEl = document.getElementById(formId);
+      const data = { formId, formTitle, savedAt: serverTimestamp(), fields: {} };
+      formEl.querySelectorAll('input[type="text"]').forEach((inp, i) => {
+        const key = inp.getAttribute('data-field') || ('field_' + i);
+        data.fields[key] = inp.value;
+      });
+      formEl.querySelectorAll('textarea').forEach((ta, i) => {
+        data.fields['textarea_' + i] = ta.value;
+      });
+      await addDoc(collection(db, "forms"), data);
+      console.log("تم الحفظ في Firebase");
+    } catch (e) {
+      console.error("خطأ في الحفظ:", e);
+    }
+  };
+</script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Times New Roman', serif; background: #f0f4f8; direction: rtl; }
@@ -342,7 +377,7 @@
 <!-- ===== FORM ACTIONS BAR ===== -->
 <div class="form-actions" id="formActions" style="display:none;">
   <button class="btn-back" onclick="goBack()">→ رجوع</button>
-  <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
+  <button class="btn-print" onclick="printAndSave()">🖨️ طباعة</button>
   <button class="btn-clear" onclick="clearForm()">🗑️ مسح</button>
   <span id="formActionsTitle"></span>
 </div>
@@ -1427,6 +1462,14 @@
     document.getElementById('mainPage').style.display = 'block';
     document.getElementById('formActions').style.display = 'none';
     window.scrollTo(0, 0);
+  }
+
+  function printAndSave() {
+    if (currentForm && window._saveFormToFirebase) {
+      const title = formTitles[currentForm] || currentForm;
+      window._saveFormToFirebase(currentForm, title);
+    }
+    window.print();
   }
 
   function clearForm() {
