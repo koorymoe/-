@@ -6,7 +6,7 @@
 <title>نظام الاستمارات الهندسية</title>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, getDocs, serverTimestamp, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBXlYDdhth8j72q9ADNggaiMNZiXSteTPA",
@@ -33,9 +33,25 @@
         data.fields['textarea_' + i] = ta.value;
       });
       await addDoc(collection(db, "forms"), data);
-      console.log("تم الحفظ في Firebase");
+      showToast("✅ تم الحفظ في قاعدة البيانات");
     } catch (e) {
       console.error("خطأ في الحفظ:", e);
+      showToast("❌ فشل الحفظ، تحقق من الاتصال");
+    }
+  };
+
+  window._loadRecords = async function() {
+    try {
+      const q = query(collection(db, "forms"), orderBy("savedAt", "desc"));
+      const snapshot = await getDocs(q);
+      const records = [];
+      snapshot.forEach(doc => {
+        records.push({ id: doc.id, ...doc.data() });
+      });
+      return records;
+    } catch (e) {
+      console.error("خطأ في التحميل:", e);
+      return [];
     }
   };
 </script>
@@ -288,6 +304,118 @@
     min-height: 60px;
   }
 
+  /* ===== TOAST ===== */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a3c5e;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-size: 15px;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ===== RECORDS PAGE ===== */
+  .records-page { display: none; padding: 30px; }
+  .records-page.active { display: block; }
+  .records-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .records-header h2 { color: #1a3c5e; font-size: 22px; }
+  .records-table-wrap { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }
+  .records-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .records-table th { background: #1a3c5e; color: white; padding: 12px 15px; text-align: right; }
+  .records-table td { padding: 10px 15px; border-bottom: 1px solid #eee; text-align: right; vertical-align: top; }
+  .records-table tr:hover { background: #f5f9ff; }
+  .records-table tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-block;
+    background: #e8f0fe;
+    color: #1a3c5e;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  .btn-view {
+    background: #2d6a9f;
+    color: white;
+    border: none;
+    padding: 5px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+  }
+  .btn-records {
+    background: #f39c12;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: bold;
+  }
+  .no-records {
+    text-align: center;
+    padding: 50px;
+    color: #999;
+    font-size: 16px;
+  }
+  .loading-records {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-box {
+    background: white;
+    border-radius: 10px;
+    padding: 25px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    direction: rtl;
+  }
+  .modal-box h3 { color: #1a3c5e; margin-bottom: 15px; font-size: 16px; }
+  .modal-field { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
+  .modal-field-key { color: #666; min-width: 80px; }
+  .modal-field-val { color: #333; font-weight: bold; }
+  .btn-close-modal {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 15px;
+  }
+
   /* ===== PRINT STYLES ===== */
   @media print {
     body { background: white; }
@@ -313,7 +441,8 @@
 <div class="main-page" id="mainPage">
   <div class="main-header">
     <h1>🗂️ نظام الاستمارات الهندسية</h1>
-    <p>شركة الأماني المتحدة للتجارة العامة والمقاولات والاستثمارات والتطوير العقاري محدودة المسؤولية | شبكة نقل الطاقة الكهربائية - كربلاء</p>
+    <p>شركة الأماني المتحدة للتجارة العامة والمقاولات والاستثمارات والتطوير العقاري محدودة المسؤولية</p>
+    <button class="btn-records" style="margin-top:15px;" onclick="showRecords()">📋 السجلات المحفوظة</button>
   </div>
   <div class="forms-grid">
     <div class="form-card" onclick="showForm('form1')">
@@ -1425,6 +1554,44 @@
 </div>
 </div>
 
+<!-- ===== RECORDS PAGE ===== -->
+<div class="records-page" id="recordsPage">
+  <div class="records-header">
+    <h2>📋 السجلات المحفوظة</h2>
+    <button class="btn-back" style="background:#1a3c5e; color:white; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-family:inherit; font-size:14px;" onclick="goBack()">→ رجوع</button>
+  </div>
+  <div class="records-table-wrap">
+    <div class="loading-records" id="recordsLoading">⏳ جاري التحميل...</div>
+    <div id="recordsContent" style="display:none;">
+      <table class="records-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>اسم الاستمارة</th>
+            <th>تاريخ الحفظ</th>
+            <th>الوقت</th>
+            <th>تفاصيل</th>
+          </tr>
+        </thead>
+        <tbody id="recordsBody"></tbody>
+      </table>
+      <div class="no-records" id="noRecords" style="display:none;">لا توجد سجلات محفوظة بعد</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL ===== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <h3 id="modalTitle"></h3>
+    <div id="modalFields"></div>
+    <button class="btn-close-modal" onclick="closeModal()">✖ إغلاق</button>
+  </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"></div>
+
 <script>
   const formTitles = {
     'form1': 'استمارة تدقيق اعمال',
@@ -1454,14 +1621,7 @@
     window.scrollTo(0, 0);
   }
 
-  function goBack() {
-    if (currentForm) {
-      document.getElementById(currentForm).classList.remove('active');
-      currentForm = null;
-    }
-    document.getElementById('mainPage').style.display = 'block';
-    document.getElementById('formActions').style.display = 'none';
-    window.scrollTo(0, 0);
+  function _oldGoBack() {
   }
 
   function printAndSave() {
@@ -1470,6 +1630,85 @@
       window._saveFormToFirebase(currentForm, title);
     }
     window.print();
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  async function showRecords() {
+    document.getElementById('mainPage').style.display = 'none';
+    document.getElementById('formActions').style.display = 'none';
+    document.getElementById('recordsPage').classList.add('active');
+    document.getElementById('recordsLoading').style.display = 'block';
+    document.getElementById('recordsContent').style.display = 'none';
+
+    const records = await window._loadRecords();
+
+    document.getElementById('recordsLoading').style.display = 'none';
+    document.getElementById('recordsContent').style.display = 'block';
+
+    const tbody = document.getElementById('recordsBody');
+    tbody.innerHTML = '';
+
+    if (records.length === 0) {
+      document.getElementById('noRecords').style.display = 'block';
+      return;
+    }
+    document.getElementById('noRecords').style.display = 'none';
+
+    records.forEach((rec, i) => {
+      const date = rec.savedAt ? rec.savedAt.toDate() : new Date();
+      const dateStr = date.toLocaleDateString('ar-IQ');
+      const timeStr = date.toLocaleTimeString('ar-IQ', {hour:'2-digit', minute:'2-digit'});
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td><span class="badge">${rec.formTitle || rec.formId}</span></td>
+        <td>${dateStr}</td>
+        <td>${timeStr}</td>
+        <td><button class="btn-view" onclick='showModal(${JSON.stringify(rec)})'>👁 عرض</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function showModal(rec) {
+    document.getElementById('modalTitle').textContent = rec.formTitle || rec.formId;
+    const fields = document.getElementById('modalFields');
+    fields.innerHTML = '';
+    if (rec.fields) {
+      Object.entries(rec.fields).forEach(([k, v]) => {
+        if (v && v.toString().trim()) {
+          const div = document.createElement('div');
+          div.className = 'modal-field';
+          div.innerHTML = `<span class="modal-field-key">${k}:</span><span class="modal-field-val">${v}</span>`;
+          fields.appendChild(div);
+        }
+      });
+    }
+    if (!fields.innerHTML) {
+      fields.innerHTML = '<p style="color:#999; text-align:center; padding:20px;">لا توجد بيانات مدخلة</p>';
+    }
+    document.getElementById('modalOverlay').classList.add('active');
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+  }
+
+  function goBack() {
+    if (currentForm) {
+      document.getElementById(currentForm).classList.remove('active');
+      currentForm = null;
+    }
+    document.getElementById('recordsPage').classList.remove('active');
+    document.getElementById('mainPage').style.display = 'block';
+    document.getElementById('formActions').style.display = 'none';
+    window.scrollTo(0, 0);
   }
 
   function clearForm() {
