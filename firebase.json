@@ -1,0 +1,11 @@
+{
+  "hosting": {
+    "site": "forms-bd550",
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "README.md"
+    ]
+  }
+}
