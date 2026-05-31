@@ -156,50 +156,6 @@
     catch (e) { return false; }
   };
 </script>
-      showToast("❌ فشل الحفظ، تحقق من الاتصال");
-    }
-  };
-
-  window._autoSaveForm = async function(formId, formTitle) {
-    try {
-      const formEl = document.getElementById(formId);
-      const fields = {};
-      formEl.querySelectorAll('input[type="text"]').forEach((inp, i) => {
-        fields['field_' + i] = inp.value;
-      });
-      formEl.querySelectorAll('textarea').forEach((ta, i) => {
-        fields['textarea_' + i] = ta.value;
-      });
-      const data = { formId, formTitle, savedAt: serverTimestamp(), fields, snapshot: '', autoSave: true };
-      await addDoc(collection(db, "forms"), data);
-    } catch (e) {
-      console.error("خطأ في الحفظ التلقائي:", e);
-    }
-  };
-
-  window._loadRecords = async function() {
-    try {
-      const q = query(collection(db, "forms"), orderBy("savedAt", "desc"));
-      const snapshot = await getDocs(q);
-      const records = [];
-      snapshot.forEach(d => records.push({ id: d.id, ...d.data() }));
-      return records;
-    } catch (e) {
-      console.error("خطأ في التحميل:", e);
-      return [];
-    }
-  };
-
-  window._deleteRecord = async function(id) {
-    try {
-      await deleteDoc(doc(db, "forms", id));
-      return true;
-    } catch (e) {
-      console.error("خطأ في الحذف:", e);
-      return false;
-    }
-  };
-</script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Times New Roman', serif; background: #f0f4f8; direction: rtl; }
