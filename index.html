@@ -7,7 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, orderBy, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBXlYDdhth8j72q9ADNggaiMNZiXSteTPA",
@@ -21,24 +22,37 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const storage = getStorage(app);
 
   window._db = db;
+  window._storage = storage;
 
-  async function captureFormImage(formEl) {
+  async function captureAndUploadForm(formEl, formId) {
     try {
       const formDoc = formEl.querySelector('.form-doc') || formEl;
       const canvas = await html2canvas(formDoc, {
-        scale: 1.2,
+        scale: 1.5,
         useCORS: true,
         backgroundColor: '#ffffff',
-        scrollX: 0,
-        scrollY: 0
+        scrollX: 0, scrollY: 0
       });
-      return canvas.toDataURL('image/jpeg', 0.75);
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.85));
+      const storageRef = ref(storage, `forms/${formId}_${Date.now()}.jpg`);
+      await uploadBytes(storageRef, blob);
+      return await getDownloadURL(storageRef);
     } catch (e) {
-      console.error("خطأ في التصوير:", e);
+      console.error("خطأ في رفع صورة الاستمارة:", e);
       return null;
     }
+  }
+
+  function extractProjectName(formEl) {
+    const inputs = formEl.querySelectorAll('input[type="text"]');
+    for (let inp of inputs) {
+      const val = inp.value.trim();
+      if (val && val.length > 2) return val;
+    }
+    return '';
   }
 
   window._saveFormToFirebase = async function(formId, formTitle) {
@@ -52,12 +66,96 @@
       formEl.querySelectorAll('textarea').forEach((ta, i) => {
         fields['textarea_' + i] = ta.value;
       });
-      const snapshot = await captureFormImage(formEl);
-      const data = { formId, formTitle, savedAt: serverTimestamp(), fields, snapshot: snapshot || '' };
+      const projectName = fields['field_0'] || '';
+      const snapshotUrl = await captureAndUploadForm(formEl, formId);
+      const data = {
+        formId, formTitle,
+        projectName,
+        savedAt: serverTimestamp(),
+        fields,
+        snapshotUrl: snapshotUrl || ''
+      };
       await addDoc(collection(db, "forms"), data);
       showToast("✅ تم الحفظ في قاعدة البيانات");
     } catch (e) {
       console.error("خطأ في الحفظ:", e);
+      showToast("❌ فشل الحفظ، تحقق من الاتصال");
+    }
+  };
+
+  window._autoSaveForm = async function(formId, formTitle) {
+    try {
+      const formEl = document.getElementById(formId);
+      const fields = {};
+      formEl.querySelectorAll('input[type="text"]').forEach((inp, i) => {
+        fields['field_' + i] = inp.value;
+      });
+      formEl.querySelectorAll('textarea').forEach((ta, i) => {
+        fields['textarea_' + i] = ta.value;
+      });
+      const projectName = fields['field_0'] || '';
+      await addDoc(collection(db, "forms"), {
+        formId, formTitle, projectName,
+        savedAt: serverTimestamp(),
+        fields, snapshotUrl: '', autoSave: true
+      });
+    } catch (e) { console.error("خطأ في الحفظ التلقائي:", e); }
+  };
+
+  window._loadRecords = async function() {
+    try {
+      const q = query(collection(db, "forms"), orderBy("savedAt", "desc"));
+      const snapshot = await getDocs(q);
+      const records = [];
+      snapshot.forEach(d => records.push({ id: d.id, ...d.data() }));
+      return records;
+    } catch (e) { console.error("خطأ في التحميل:", e); return []; }
+  };
+
+  window._deleteRecord = async function(id) {
+    try {
+      await deleteDoc(doc(db, "forms", id));
+      return true;
+    } catch (e) { return false; }
+  };
+
+  window._uploadProjectPhoto = async function(projectName, file) {
+    try {
+      showToast("⏳ جاري رفع الصورة...");
+      const storageRef = ref(storage, `projects/${projectName}_${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      await addDoc(collection(db, "project_photos"), {
+        projectName,
+        photoUrl: url,
+        uploadedAt: serverTimestamp()
+      });
+      showToast("✅ تم رفع الصورة");
+      return url;
+    } catch (e) {
+      console.error("خطأ في رفع الصورة:", e);
+      showToast("❌ فشل رفع الصورة");
+      return null;
+    }
+  };
+
+  window._loadProjectPhotos = async function(projectName) {
+    try {
+      const q = projectName
+        ? query(collection(db, "project_photos"), where("projectName", "==", projectName), orderBy("uploadedAt", "desc"))
+        : query(collection(db, "project_photos"), orderBy("uploadedAt", "desc"));
+      const snapshot = await getDocs(q);
+      const photos = [];
+      snapshot.forEach(d => photos.push({ id: d.id, ...d.data() }));
+      return photos;
+    } catch (e) { console.error("خطأ:", e); return []; }
+  };
+
+  window._deletePhoto = async function(id) {
+    try { await deleteDoc(doc(db, "project_photos", id)); return true; }
+    catch (e) { return false; }
+  };
+</script>
       showToast("❌ فشل الحفظ، تحقق من الاتصال");
     }
   };
@@ -369,6 +467,123 @@
   }
   .toast.show { opacity: 1; }
 
+  /* ===== PHOTOS PAGE ===== */
+  .photos-page { display: none; padding: 30px; }
+  .photos-page.active { display: block; }
+  .photos-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .photos-header h2 { color: #1a3c5e; font-size: 22px; }
+  .upload-box {
+    background: white;
+    border-radius: 10px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .upload-box h3 { color: #1a3c5e; margin-bottom: 15px; font-size: 16px; }
+  .upload-row { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
+  .upload-field { display: flex; flex-direction: column; gap: 5px; }
+  .upload-field label { font-size: 13px; font-weight: bold; color: #555; }
+  .upload-field input[type="text"] {
+    border: 1px solid #ccc !important;
+    border-bottom: 1px solid #ccc !important;
+    border-radius: 6px;
+    padding: 8px 12px !important;
+    font-size: 13px;
+    width: 250px;
+    background: white !important;
+  }
+  .upload-field input[type="file"] { font-size: 13px; }
+  .btn-upload {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 9px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: bold;
+  }
+  .filter-row { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
+  .filter-row input[type="text"] {
+    border: 1px solid #ccc !important;
+    border-radius: 6px;
+    padding: 8px 12px !important;
+    font-size: 13px;
+    width: 250px;
+    background: white !important;
+  }
+  .btn-filter {
+    background: #2d6a9f;
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  .btn-filter-clear {
+    background: #95a5a6;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  .photos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+  }
+  .photo-card {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .photo-card img { width: 100%; height: 160px; object-fit: cover; cursor: pointer; }
+  .photo-card-info { padding: 10px; }
+  .photo-card-info .proj-name { font-weight: bold; color: #1a3c5e; font-size: 13px; margin-bottom: 4px; }
+  .photo-card-info .photo-date { font-size: 11px; color: #999; }
+  .photo-card-actions { padding: 0 10px 10px; display: flex; justify-content: flex-end; }
+  .btn-del-photo {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+  }
+  .no-photos { text-align: center; padding: 50px; color: #999; grid-column: 1/-1; }
+
+  /* Image lightbox */
+  .lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 3000;
+    justify-content: center;
+    align-items: center;
+  }
+  .lightbox.active { display: flex; }
+  .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+  .lightbox-close {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: white;
+    font-size: 30px;
+    cursor: pointer;
+    background: none;
+    border: none;
+  }
+
   /* ===== RECORDS PAGE ===== */
   .records-page { display: none; padding: 30px; }
   .records-page.active { display: block; }
@@ -501,7 +716,10 @@
   <div class="main-header">
     <h1>🗂️ نظام الاستمارات الهندسية</h1>
     <p>شركة الأماني المتحدة للتجارة العامة والمقاولات والاستثمارات والتطوير العقاري محدودة المسؤولية</p>
-    <button class="btn-records" style="margin-top:15px;" onclick="showRecords()">📋 السجلات المحفوظة</button>
+    <div style="display:flex; gap:10px; justify-content:center; margin-top:15px; flex-wrap:wrap;">
+      <button class="btn-records" onclick="showRecords()">📋 السجلات المحفوظة</button>
+      <button class="btn-records" style="background:#27ae60;" onclick="showPhotos()">📸 معرض الأعمال</button>
+    </div>
   </div>
   <div class="forms-grid">
     <div class="form-card" onclick="showForm('form1')">
@@ -1613,6 +1831,45 @@
 </div>
 </div>
 
+<!-- ===== PHOTOS PAGE ===== -->
+<div class="photos-page" id="photosPage">
+  <div class="photos-header">
+    <h2>📸 معرض الأعمال المنجزة</h2>
+    <button onclick="goBack()" style="background:#1a3c5e; color:white; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-family:inherit; font-size:14px;">→ رجوع</button>
+  </div>
+
+  <div class="upload-box">
+    <h3>📤 رفع صورة جديدة</h3>
+    <div class="upload-row">
+      <div class="upload-field">
+        <label>اسم المشروع</label>
+        <input type="text" id="photoProjectName" placeholder="اكتب اسم المشروع...">
+      </div>
+      <div class="upload-field">
+        <label>اختر الصورة</label>
+        <input type="file" id="photoFile" accept="image/*" multiple>
+      </div>
+      <button class="btn-upload" onclick="uploadPhoto()">📤 رفع</button>
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <input type="text" id="filterProjectName" placeholder="ابحث باسم المشروع...">
+    <button class="btn-filter" onclick="filterPhotos()">🔍 بحث</button>
+    <button class="btn-filter-clear" onclick="loadAllPhotos()">✖ مسح</button>
+  </div>
+
+  <div class="photos-grid" id="photosGrid">
+    <div class="no-photos">⏳ جاري التحميل...</div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close">✖</button>
+  <img id="lightboxImg" src="">
+</div>
+
 <!-- ===== RECORDS PAGE ===== -->
 <div class="records-page" id="recordsPage">
   <div class="records-header">
@@ -1706,6 +1963,79 @@
       window._saveFormToFirebase(currentForm, title);
     }
     window.print();
+  }
+
+  async function showPhotos() {
+    document.getElementById('mainPage').style.display = 'none';
+    document.getElementById('formActions').style.display = 'none';
+    document.getElementById('recordsPage').classList.remove('active');
+    document.getElementById('photosPage').classList.add('active');
+    await loadAllPhotos();
+  }
+
+  async function loadAllPhotos() {
+    document.getElementById('filterProjectName').value = '';
+    const photos = await window._loadProjectPhotos('');
+    renderPhotos(photos);
+  }
+
+  async function filterPhotos() {
+    const name = document.getElementById('filterProjectName').value.trim();
+    const photos = await window._loadProjectPhotos(name);
+    renderPhotos(photos);
+  }
+
+  function renderPhotos(photos) {
+    const grid = document.getElementById('photosGrid');
+    grid.innerHTML = '';
+    if (!photos.length) {
+      grid.innerHTML = '<div class="no-photos">لا توجد صور بعد</div>';
+      return;
+    }
+    photos.forEach(p => {
+      const date = p.uploadedAt ? p.uploadedAt.toDate().toLocaleDateString('ar-IQ') : '';
+      const card = document.createElement('div');
+      card.className = 'photo-card';
+      card.innerHTML = `
+        <img src="${p.photoUrl}" onclick="openLightbox('${p.photoUrl}')" loading="lazy">
+        <div class="photo-card-info">
+          <div class="proj-name">📁 ${p.projectName || 'بدون اسم'}</div>
+          <div class="photo-date">${date}</div>
+        </div>
+        <div class="photo-card-actions">
+          <button class="btn-del-photo" onclick="deletePhoto('${p.id}', this)">🗑 حذف</button>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  async function uploadPhoto() {
+    const projectName = document.getElementById('photoProjectName').value.trim();
+    const fileInput = document.getElementById('photoFile');
+    if (!projectName) { showToast("⚠️ اكتب اسم المشروع أولاً"); return; }
+    if (!fileInput.files.length) { showToast("⚠️ اختر صورة أولاً"); return; }
+    for (let file of fileInput.files) {
+      await window._uploadProjectPhoto(projectName, file);
+    }
+    fileInput.value = '';
+    await loadAllPhotos();
+  }
+
+  async function deletePhoto(id, btn) {
+    if (!confirm('هل تريد حذف هذه الصورة؟')) return;
+    const ok = await window._deletePhoto(id);
+    if (ok) { btn.closest('.photo-card').remove(); showToast("🗑 تم الحذف"); }
+    else showToast("❌ فشل الحذف");
+  }
+
+  function openLightbox(url) {
+    document.getElementById('lightboxImg').src = url;
+    document.getElementById('lightbox').classList.add('active');
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('active');
   }
 
   function showToast(msg) {
@@ -1803,6 +2133,7 @@
       currentForm = null;
     }
     document.getElementById('recordsPage').classList.remove('active');
+    document.getElementById('photosPage').classList.remove('active');
     document.getElementById('mainPage').style.display = 'block';
     document.getElementById('formActions').style.display = 'none';
     window.scrollTo(0, 0);
